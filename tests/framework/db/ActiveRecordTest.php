@@ -1148,14 +1148,24 @@ class ActiveRecordTest extends DatabaseTestCase
     {
         $db = $this->getConnection();
 
-        $query = OrderItem::find()->addHintIndex(['order_item' => [['use', 'index', ['primary']]]]);
+        $query = null;
+        $expected = null;
 
-        $command = $query->createCommand($db);
+        if ($this->driverName === 'mysql') {
+            $query = OrderItem::find()->addHintIndex(['order_item' => [['use', 'index', ['primary']]]]);
+            $expected = "SELECT * FROM `order_item` USE INDEX (primary)";
+            $command = $query->createCommand($db);
+            $actual = $command->sql;
 
-        $actual = $command->sql;
-        $expected = "SELECT * FROM `order_item` USE INDEX (primary)";
+            $this->assertEquals($expected, $actual);
+        } else {
+            // Currently cubrid, mssql, oci, pgsql, sqlite hintIndex call is not supported and will be ignore.
+            $query = OrderItem::find()->addHintIndex(['order_item' => [['use', 'index', ['primary']]]]);
+            $expected = "SELECT * FROM `order_item`";
+            $command = $query->createCommand($db);
+            $actual = $command->sql;
 
-        $this->assertEquals($expected, $actual);
+            $this->assertEquals($expected, $actual);
+        }
     }
-
 }

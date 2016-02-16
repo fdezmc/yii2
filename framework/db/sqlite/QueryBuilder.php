@@ -358,14 +358,19 @@ class QueryBuilder extends \yii\db\QueryBuilder
      */
     public function build($query, $params = [])
     {
+        $hintIndex = $query->hintIndex;
+        if (!empty($hintIndex)) {
+            $hintIndex = $this->prepareHintIndex($query->hintIndex);
+        }
+
         $query = $query->prepare($this);
 
         $params = empty($params) ? $query->params : array_merge($params, $query->params);
 
         $clauses = [
             $this->buildSelect($query->select, $params, $query->distinct, $query->selectOption),
-            $this->buildFrom($query->from, $params),
-            $this->buildJoin($query->join, $params),
+            $this->buildFrom($query->from, $params, $hintIndex),
+            $this->buildJoin($query->join, $params, $hintIndex),
             $this->buildWhere($query->where, $params),
             $this->buildGroupBy($query->groupBy),
             $this->buildHaving($query->having, $params),
@@ -425,18 +430,7 @@ class QueryBuilder extends \yii\db\QueryBuilder
      */
     public function prepareHintIndex($hintIndex)
     {
-        \Yii::trace('addHintIndex not tested for sqlite driver');
-        if (!is_array($hintIndex) || empty($hintIndex)) {
-            return [];
-        }
-
-        foreach($hintIndex as $table => $hints) {
-            foreach($hints as $hintIndexTableIndex => $hint) {
-                if (!empty($hint[0])) {
-                    $hintIndex[$table][$hintIndexTableIndex] = "INDEXED BY $hint[0]";
-                }
-            }
-        }
-        return $hintIndex;
+        \Yii::trace('addHintIndex not supported for sqlite driver');
+        return [];
     }
 }

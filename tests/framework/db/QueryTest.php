@@ -264,18 +264,33 @@ class QueryTest extends DatabaseTestCase
     {
         $db = $this->getConnection();
 
-        $query = (new Query)->from(['t' => 'user'])->addHintIndex(['user' => [
-            ['force', 'index', ['primary']],
-            ['ignore', 'index', 'order by', ['i1']],
-        ]])->leftJoin('profile as p', 'user.id = profile.user_id')->addHintIndex(['profile' => [
-            'use', 'index', ['i2']
-        ]]);
+        $query = null;
+        $expected = null;
 
-        $command = $query->createCommand($db);
+        if ($this->driverName === 'mysql') {
+            $query = (new Query)->from(['t' => 'user'])->addHintIndex(['user' => [
+                ['force', 'index', ['primary']],
+                ['ignore', 'index', 'order by', ['i1']],
+            ]])->leftJoin('profile as p', 'user.id = profile.user_id')->addHintIndex(['profile' => [
+                'use', 'index', ['i2']
+            ]]);
+            $expected = "SELECT * FROM `user` `t` FORCE INDEX (primary) IGNORE INDEX FOR ORDER BY (i1) LEFT JOIN `profile` `p` ON user.id = profile.user_id USE INDEX (i2)";
+            $command = $query->createCommand($db);
+            $actual = $command->sql;
 
-        $actual = $command->sql;
-        $expected = "SELECT * FROM `user` `t` FORCE INDEX (primary) IGNORE INDEX FOR ORDER BY (i1) LEFT JOIN `profile` `p` ON user.id = profile.user_id USE INDEX (i2)";
+            $this->assertEquals($expected, $actual);
+        } else {
+            // Currently cubrid, mssql, oci, pgsql, sqlite hintIndex call is not supported and will be ignore.
+            $query = (new Query)->from(['user'])->addHintIndex(['user' => [
+                ['force', 'index', ['primary']],
+                ['ignore', 'index', 'order by', ['i1']],
+            ]]);
+            $expected = "SELECT * FROM `user`";
 
-        $this->assertEquals($expected, $actual);
+            $command = $query->createCommand($db);
+            $actual = $command->sql;
+
+            $this->assertEquals($expected, $actual);
+        }
     }
 }
